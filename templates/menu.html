@@ -5,14 +5,13 @@
 {% block body %}
 
 {% for message in messages %}
-<div class="alert alert-success alert-dismissable fade show" role="alert">
-    <strong>{{message}}</strong>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
+    <div class="alert alert-success alert-dismissable fade show" role="alert">
+        <strong>{{ message }}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 {% endfor %}
 
-<div class="container">
-  <div class="accordion accordion-flush" id="accordionFlushExample">
+<div class="accordion accordion-flush" id="accordionFlushExample">
     {% for category, menu_items in items_by_category.items %}
     <div class="accordion-item">
         <h2 class="accordion-header">
@@ -22,20 +21,31 @@
         </h2>
         <div id="{{ category|slugify }}" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
             <div class="accordion-body">
-                {% for item in menu_items %}
-                <div class="item">
-                    <h4>{{ item.name }}</h4>
-                    <p>Price: ₹{{ item.price }}</p>
-                    <p>{{ item.desc }}</p>
-                    <button class="btn btn-primary" onclick="addToCart('{{ item.id }}')">Add to Cart</button>
+                <div class="row justify-content-center">
+                    {% for item in menu_items %}
+                    <div class="card" style="width: 18rem; margin:20px 20px 10px;">
+                        <div class="card-body">
+                            <h4 class="card-title" id="namepr{{ item.id }}">{{ item.name }}</h4>
+                            <h5 class="card-title">₹<span id="pricepr{{ item.id }}">{{ item.price }}</span></h5>
+                            <p class="card-text">{{ item.desc }}</p>
+                            {% if user.is_superuser %}
+                            <form action="{% url 'delete_dish' item.id %}" method="post">
+                                {% csrf_token %}
+                                <button class="btn btn-danger" type="submit">Delete</button>
+                            </form>
+                            {% else %}
+                            <span id="divpr{{ item.id }}" class="divpr">
+                                <button id="pr{{ item.id }}" class="btn btn-primary cart">Add to cart</button>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
     {% endfor %}
-</div>
-
 </div>
 
 <div class="d-md-flex mx-auto justify-content-md-center" style="padding:25px 0px 50px;">
@@ -45,36 +55,60 @@
 {% endblock body %}
 
 {% block js %}
+
 <script>
-    function toggleCategory(categoryIndex) {
-        var content = document.getElementById('categoryContent' + categoryIndex);
-        if (content.style.display === 'none') {
-            content.style.display = 'block';
-        } else {
-            content.style.display = 'none';
-        }
+
+  var cart = JSON.parse(localStorage.getItem('cart')) || {};
+  updatecart(cart);
+
+  $('.divpr').on('click', 'button.cart', function() {
+    var itemId = $(this).attr('id');
+    
+    if (cart[itemId]) {
+      cart[itemId]++;
+      qty = cart[itemId][0] + 1;
+      cart[itemId][0] = cart[itemId][0] + 1;
+    } else {
+      qty = 1;
+      name = document.getElementById('name'+itemId).innerHTML;
+      price = document.getElementById('price'+itemId).innerHTML;
+      cart[itemId] = [qty,name,parseInt(price)];
     }
+    updatecart(cart);
+  });
+  
+  updatecart(cart);
 
-    var cart = JSON.parse(localStorage.getItem('cart')) || {};
-
-    function addToCart(itemId) {
-        if (cart[itemId]) {
-            cart[itemId][0]++;
-        } else {
-            var selectedItem = items.find(item => item.id == itemId);
-            cart[itemId] = [1, selectedItem.name, selectedItem.price];
-        }
-        updateCart();
+  function updatecart(cart) {
+    var total = 0;
+    for (var item in cart){
+      total = total + cart[item][0];
+      document.getElementById('div'+item).innerHTML = "<button id='minus"+item+ "'class='btn btn-primary minus'>-</button> <span id='val"+item+"'>"+cart[item][0]+"</span> <button id='plus"+item+"'class='btn btn-primary plus'>+</button>";
     }
+  localStorage.setItem('cart', JSON.stringify(cart));
+  document.getElementById('cart').innerHTML= total;
+  }
 
-    function updateCart() {
-        var totalItems = 0;
-        for (var itemId in cart) {
-            totalItems += cart[itemId][0];
-        }
-        document.getElementById('cart').innerHTML = totalItems;
+  $('.divpr').on('click', 'button.minus', function(){
+    a=this.id.slice(5,);
+    cart[a][0]= cart[a][0] -1;
+    cart[a][0] = Math.max(0,cart[a][0]);
+    document.getElementById('val'+a).innerHTML= cart[a][0];
+    updatecart(cart);
+  });
 
-        localStorage.setItem('cart', JSON.stringify(cart));
-    }
+  $('.divpr').on('click', 'button.plus', function(){
+    a=this.id.slice(4,);
+    cart[a][0]= cart[a][0] +1;
+    document.getElementById('val'+a).innerHTML= cart[a][0];
+    updatecart(cart);
+  });
+
+  var url = window.location.href;
+  var params = new URLSearchParams(new URL(url).search);
+  var tableValue = params.get('table');
+  localStorage.setItem('tableValue', tableValue);
+
 </script>
+
 {% endblock js %}
