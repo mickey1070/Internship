@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Menu{% endblock title %}
+
+{% block body %}
+
+{% for message in messages %}
+<div class="alert alert-success alert-dismissable fade show" role="alert">
+    <strong>{{message}}</strong>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+
+<div class="container">
+  <div class="accordion accordion-flush" id="accordionFlushExample">
+    {% for category, menu_items in items_by_category.items %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ category|slugify }}" aria-expanded="false" aria-controls="{{ category|slugify }}">
+                {{ category }}
+            </button>
+        </h2>
+        <div id="{{ category|slugify }}" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+            <div class="accordion-body">
+                {% for item in menu_items %}
+                <div class="item">
+                    <h4>{{ item.name }}</h4>
+                    <p>Price: ₹{{ item.price }}</p>
+                    <p>{{ item.desc }}</p>
+                    <button class="btn btn-primary" onclick="addToCart('{{ item.id }}')">Add to Cart</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+</div>
+
+<div class="d-md-flex mx-auto justify-content-md-center" style="padding:25px 0px 50px;">
+    <a href='/cart'><button type="submit" class="btn btn-outline-success">Go To Cart</button></a>
+</div>
+
+{% endblock body %}
+
+{% block js %}
+<script>
+    function toggleCategory(categoryIndex) {
+        var content = document.getElementById('categoryContent' + categoryIndex);
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+        } else {
+            content.style.display = 'none';
+        }
+    }
+
+    var cart = JSON.parse(localStorage.getItem('cart')) || {};
+
+    function addToCart(itemId) {
+        if (cart[itemId]) {
+            cart[itemId][0]++;
+        } else {
+            var selectedItem = items.find(item => item.id == itemId);
+            cart[itemId] = [1, selectedItem.name, selectedItem.price];
+        }
+        updateCart();
+    }
+
+    function updateCart() {
+        var totalItems = 0;
+        for (var itemId in cart) {
+            totalItems += cart[itemId][0];
+        }
+        document.getElementById('cart').innerHTML = totalItems;
+
+        localStorage.setItem('cart', JSON.stringify(cart));
+    }
+</script>
+{% endblock js %}
